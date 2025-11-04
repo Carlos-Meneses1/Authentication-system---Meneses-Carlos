@@ -105,7 +105,7 @@ export const Navbar = () => {
 						{store.token && (
 							<li className="nav-item">
 								<NavLink
-									to="/tasks"
+									to="/todos"
 									className={({ isActive }) => `nav-link px-3 py-2 mx-1 fw-semibold`}
 									style={({ isActive }) => ({
 										color: isActive ? '#667eea' : '#4a5568',
@@ -119,7 +119,7 @@ export const Navbar = () => {
 											<path d="M9 11l3 3L22 4"/>
 											<path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
 										</svg>
-										Mis Tareas
+										Lista de tareas
 									</div>
 								</NavLink>
 							</li>
