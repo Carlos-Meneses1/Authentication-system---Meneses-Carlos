@@ -2,7 +2,7 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
-from api.models import db, User
+from api.models import db, User, Todos
 from api.utils import generate_sitemap, APIException, es_correo_valido, send_email
 from flask_cors import CORS
 import os
@@ -196,3 +196,101 @@ def update_password():
             return jsonify({"message": "Error al actualizar la contraseña"}), 500
 
     return jsonify({"message": "Intentelo nuevamente, si el error persiste comuniquese con soporte"}), 400
+
+
+# ============= RUTAS PARA TAREAS =============
+
+@api.route("/tasks", methods=["GET"])
+@jwt_required()
+def get_tasks():
+    user_id = get_jwt_identity()
+    tasks = Todos.query.filter_by(user_id=user_id).all()
+    
+    return jsonify({
+        "tasks": [{
+            "id": task.id,
+            "title": task.label,
+            "completed": task.is_done
+        } for task in tasks]
+    }), 200
+
+
+@api.route("/tasks", methods=["POST"])
+@jwt_required()
+def create_task():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    if not data.get("title"):
+        return jsonify({"message": "Title is required"}), 400
+    
+    new_task = Todos(
+        label=data.get("title"),
+        user_id=user_id,
+        is_done=False
+    )
+    
+    db.session.add(new_task)
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            "task": {
+                "id": new_task.id,
+                "title": new_task.label,
+                "completed": new_task.is_done
+            }
+        }), 201
+    except Exception as error:
+        db.session.rollback()
+        return jsonify({"message": "Error creating task", "error": str(error)}), 500
+
+
+@api.route("/tasks/<int:task_id>", methods=["PUT"])
+@jwt_required()
+def update_task(task_id):
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    task = Todos.query.filter_by(id=task_id, user_id=user_id).one_or_none()
+    
+    if task is None:
+        return jsonify({"message": "Task not found"}), 404
+    
+    if "title" in data:
+        task.label = data.get("title")
+    if "completed" in data:
+        task.is_done = data.get("completed")
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            "task": {
+                "id": task.id,
+                "title": task.label,
+                "completed": task.is_done
+            }
+        }), 200
+    except Exception as error:
+        db.session.rollback()
+        return jsonify({"message": "Error updating task", "error": str(error)}), 500
+
+
+@api.route("/tasks/<int:task_id>", methods=["DELETE"])
+@jwt_required()
+def delete_task(task_id):
+    user_id = get_jwt_identity()
+    
+    task = Todos.query.filter_by(id=task_id, user_id=user_id).one_or_none()
+    
+    if task is None:
+        return jsonify({"message": "Task not found"}), 404
+    
+    db.session.delete(task)
+    
+    try:
+        db.session.commit()
+        return jsonify({"message": "Task deleted successfully"}), 200
+    except Exception as error:
+        db.session.rollback()
+        return jsonify({"message": "Error deleting task", "error": str(error)}), 500
