@@ -1,7 +1,7 @@
 # To Start and Run the Project
 
 - Click the <> Code button.
-- Select "Create codespace on develop".
+- Select "Create codespace on main".
 - Once the environment has loaded, run the following commands to start both services:
 
 - $ npm run start        # Run the Front-End
